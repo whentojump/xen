@@ -4,6 +4,11 @@
 #include <asm/vfp.h>
 #include <asm/arm64/sve.h>
 
+/*
+ * These functions need to use FP/SIMD registers to save/restore guest VFP state.
+ * The target attribute enables FP/SIMD for these specific functions.
+ */
+__attribute__((target("+fp+simd")))
 static inline void save_state(uint64_t *fpregs)
 {
     asm volatile("stp q0, q1, [%1, #16 * 0]\n\t"
@@ -25,6 +30,7 @@ static inline void save_state(uint64_t *fpregs)
                  : "=Q" (*fpregs) : "r" (fpregs));
 }
 
+__attribute__((target("+fp+simd")))
 static inline void restore_state(const uint64_t *fpregs)
 {
     asm volatile("ldp q0, q1, [%1, #16 * 0]\n\t"
@@ -46,6 +52,7 @@ static inline void restore_state(const uint64_t *fpregs)
                  : : "Q" (*fpregs), "r" (fpregs));
 }
 
+__attribute__((target("+fp+simd")))
 void vfp_save_state(struct vcpu *v)
 {
     if ( !cpu_has_fp )
@@ -62,6 +69,7 @@ void vfp_save_state(struct vcpu *v)
         v->arch.vfp.fpexc32_el2 = READ_SYSREG(FPEXC32_EL2);
 }
 
+__attribute__((target("+fp+simd")))
 void vfp_restore_state(struct vcpu *v)
 {
     if ( !cpu_has_fp )
