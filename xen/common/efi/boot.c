@@ -1480,7 +1480,7 @@ void EFIAPI __init noreturn efi_start(EFI_HANDLE ImageHandle,
     }
 
     PrintStr(L"Xen " XEN_VERSION_STRING XEN_EXTRAVERSION
-	     " (c/s " XEN_CHANGESET ") EFI loader\r\n");
+             " (c/s " XEN_CHANGESET ") EFI loader\r\n");
 
     efi_arch_relocate_image(0);
 
@@ -1671,7 +1671,6 @@ void EFIAPI __init noreturn efi_start(EFI_HANDLE ImageHandle,
     efi_relocate_esrt(SystemTable);
 
     efi_exit_boot(ImageHandle, SystemTable);
-
     efi_arch_post_exit_boot(); /* Doesn't return. */
 }
 

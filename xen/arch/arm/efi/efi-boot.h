@@ -56,6 +56,7 @@ static struct file __initdata dtbfile;
 static void __initdata *fdt_efi;
 static void __initdata *memmap;
 
+
 static int __init setup_chosen_node(void *fdt, int *addr_cells, int *size_cells)
 {
     int node;
@@ -167,6 +168,7 @@ static bool __init meminfo_add_bank(struct membanks *mem,
 
     if ( mem->nr_banks >= mem->max_banks )
         return false;
+
 #ifdef CONFIG_ACPI
     if ( check_reserved_regions_overlap(start, size, false) )
         return false;
