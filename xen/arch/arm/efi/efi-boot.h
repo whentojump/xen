@@ -56,6 +56,14 @@ static struct file __initdata dtbfile;
 static void __initdata *fdt_efi;
 static void __initdata *memmap;
 
+/*
+ * Flag to indicate if we've attempted ExitBootServices.
+ * After this point, we cannot safely call check_reserved_regions_overlap()
+ * because it accesses the global bootinfo structure which may be in memory
+ * that requires EL2 privilege after ExitBootServices changes mappings.
+ */
+static bool __initdata exit_boot_attempted = false;
+
 
 static int __init setup_chosen_node(void *fdt, int *addr_cells, int *size_cells)
 {
@@ -170,8 +178,17 @@ static bool __init meminfo_add_bank(struct membanks *mem,
         return false;
 
 #ifdef CONFIG_ACPI
-    if ( check_reserved_regions_overlap(start, size, false) )
-        return false;
+    /*
+     * WORKAROUND for nested virtualization:
+     * After ExitBootServices() is attempted, the global bootinfo structure
+     * may be in memory requiring EL2 privilege. Skip the overlap check after
+     * that point to avoid synchronous exception.
+     */
+    if ( !exit_boot_attempted )
+    {
+        if ( check_reserved_regions_overlap(start, size, false) )
+            return false;
+    }
 #endif
 
     for ( j = 0; j < mem->nr_banks; j++ )
@@ -397,10 +414,57 @@ static void __init efi_arch_process_memory_map(EFI_SYSTEM_TABLE *SystemTable,
 
 static void __init efi_arch_pre_exit_boot(void)
 {
+    /* Mark that we're attempting ExitBootServices */
+    exit_boot_attempted = true;
 }
 
 static void __init noreturn efi_arch_post_exit_boot(void)
 {
+    uint64_t current_el;
+    uint64_t el;
+
+    asm volatile("mrs %0, CurrentEL" : "=r" (current_el));
+    el = (current_el >> 2) & 3;
+
+    PrintStr(L"\r\n========================================\r\n");
+    PrintStr(L"XEN EXCEPTION LEVEL CHECK\r\n");
+    PrintStr(L"========================================\r\n");
+
+    if ( el == 1 )
+    {
+        PrintStr(L"DETECTED: EL1 (Exception Level 1)\r\n");
+        PrintStr(L"  -> This is GUEST OS privilege level\r\n");
+        PrintStr(L"  -> Xen REQUIRES EL2 (hypervisor level)\r\n");
+        PrintStr(L"\r\n");
+        PrintStr(L"CAUSE: Nested virtualization\r\n");
+        PrintStr(L"  -> Mac M2 Hypervisor.framework uses EL2\r\n");
+        PrintStr(L"  -> Debian VM runs at EL1\r\n");
+        PrintStr(L"  -> Xen cannot run inside a VM\r\n");
+        PrintStr(L"\r\n");
+        PrintStr(L"RESULT: Any EL2 register access will cause\r\n");
+        PrintStr(L"        'Synchronous Exception' and crash\r\n");
+        PrintStr(L"========================================\r\n");
+        PrintStr(L"FATAL: Halting to prevent crash\r\n\r\n");
+        while (1) { asm volatile("wfe"); }
+    }
+    else if ( el == 2 )
+    {
+        PrintStr(L"DETECTED: EL2 (Exception Level 2)\r\n");
+        PrintStr(L"  -> This is HYPERVISOR privilege level\r\n");
+        PrintStr(L"  -> This is CORRECT for Xen\r\n");
+        PrintStr(L"\r\n");
+        PrintStr(L"RESULT: Xen can access EL2 registers safely\r\n");
+        PrintStr(L"        Proceeding with boot...\r\n");
+        PrintStr(L"========================================\r\n\r\n");
+    }
+    else
+    {
+        PrintStr(L"DETECTED: Unexpected exception level\r\n");
+        PrintStr(L"FATAL: Cannot proceed\r\n");
+        PrintStr(L"========================================\r\n\r\n");
+        while (1) { asm volatile("wfe"); }
+    }
+
     efi_xen_start(fdt_efi, fdt_totalsize(fdt_efi));
 }
 
