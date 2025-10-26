@@ -314,26 +314,15 @@ END(init_secondary)
  * Clobbers x0 - x5
  */
 FUNC_LOCAL(check_cpu_mode)
-        PRINT_ID("- Current EL ")
         mrs   x5, CurrentEL
-        print_reg x5
-        PRINT_ID(" -\r\n")
-
         /* Are we in EL2 */
         cmp   x5, #PSR_MODE_EL2t
         ccmp  x5, #PSR_MODE_EL2h, #0x4, ne
         b.ne  1f /* No */
-        PRINT_ID("- SUCCESS: Running at EL2 (hypervisor mode) -\r\n")
         ret
 1:
         /* OK, we're boned. */
-        PRINT_ID("- FATAL ERROR: Not in EL2 mode! -\r\n")
-        PRINT_ID("- CurrentEL value: ")
-        print_reg x5
-        PRINT_ID("\r\n")
-        PRINT_ID("- Expected: 0x8 (EL2h) or 0x4 (EL2t) -\r\n")
-        PRINT_ID("- Xen REQUIRES EL2 (hypervisor mode) -\r\n")
-        PRINT_ID("- Cannot run in nested virtualization -\r\n")
+        PRINT_ID("- Xen must be entered in NS EL2 mode -\r\n")
         PRINT_ID("- Please update the bootloader -\r\n")
         b fail
 END(check_cpu_mode)
@@ -371,10 +360,8 @@ END(zero_bss)
  */
 FUNC_LOCAL(cpu_init)
         PRINT_ID("- Initialize CPU -\r\n")
-        PRINT_ID("- About to access EL2 registers -\r\n")
 
         /* Set up memory attribute type tables */
-        PRINT_ID("- Writing MAIR_EL2 -\r\n")
         ldr   x0, =MAIRVAL
         msr   mair_el2, x0
 
@@ -397,10 +384,8 @@ FUNC_LOCAL(cpu_init)
 
         bfi   x0, x1, #16, #3
 
-        PRINT_ID("- Writing TCR_EL2 -\r\n")
         msr   tcr_el2, x0
 
-        PRINT_ID("- Writing SCTLR_EL2 -\r\n")
         ldr   x0, =SCTLR_EL2_SET
         msr   SCTLR_EL2, x0
         isb
@@ -518,13 +503,6 @@ END(lookup_processor_type)
  */
 FUNC(efi_xen_start)
         /*
-         * DIAGNOSTIC: Check CurrentEL IMMEDIATELY before any EL2 register access
-         */
-        mrs   x10, CurrentEL
-        cmp   x10, #8                   /* Are we at EL2? (0x8 = EL2h) */
-        b.ne  efi_el_error              /* No - jump to error handler */
-
-        /*
          * Preserve x0 (fdt pointer) across call to __flush_dcache_area,
          * restore for entry into Xen.
          */
@@ -576,46 +554,6 @@ FUNC(efi_xen_start)
 
         b     real_start_efi
 END(efi_xen_start)
-
-/*
- * EFI boot detected wrong exception level
- * This runs when EFI tries to start Xen but we're not at EL2
- * The "Synchronous Exception" you saw was from trying to access sctlr_el2 at EL1
- */
-FUNC_LOCAL(efi_el_error)
-        /* Save CurrentEL for later inspection */
-        mrs   x15, CurrentEL
-
-#ifdef CONFIG_EARLY_PRINTK
-        /* Try to print error message if UART is available from EFI */
-        /* Initialize UART (EFI might have already done this) */
-        ldr   x23, =CONFIG_EARLY_UART_BASE_ADDRESS
-
-        /* Print diagnostic message */
-        adr_l x0, efi_el_msg1
-        bl    asm_puts
-
-        /* Print CurrentEL value */
-        mov   x0, x15
-        bl    asm_putn
-
-        adr_l x0, efi_el_msg2
-        bl    asm_puts
-#endif
-
-        /* Infinite loop with distinctive pattern */
-        /* Debuggers/crash dumps can see CurrentEL in x15 */
-1:      wfe                             /* Wait for event (save power) */
-        mov   x11, #0xDEAD              /* Distinctive pattern */
-        movk  x11, #0xBEEF, lsl #16
-        mov   x12, x15                  /* Keep CurrentEL here too */
-        b     1b
-END(efi_el_error)
-
-#ifdef CONFIG_EARLY_PRINTK
-RODATA_SECT(.rodata.idmap, efi_el_msg1, "\r\n*** EFI BOOT ERROR: Not at EL2! CurrentEL = 0x")
-RODATA_SECT(.rodata.idmap, efi_el_msg2, "\r\n*** Xen requires EL2 (0x8), cannot run at EL1 (0x4)\r\n*** This is nested virtualization - not supported\r\n\r\n")
-#endif
 
 #endif /* CONFIG_ARM_EFI */
 

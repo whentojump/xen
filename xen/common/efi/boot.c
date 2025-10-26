@@ -1320,7 +1320,14 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
     unsigned int i;
 #endif
 
-    PrintStr(L"[Checkpoint 2a] Getting memory map\r\n");
+    PrintStr(L"[DEBUG] Entered efi_exit_boot\r\n");
+
+    /*
+     * Check privilege level IMMEDIATELY, before any EFI operations
+     * that might require EL2 (e.g., GetMemoryMap, memory allocations).
+     */
+    efi_arch_post_exit_boot(); /* Checks CurrentEL, doesn't return */
+
     efi_bs->GetMemoryMap(&info_size, NULL, &map_key,
                          &efi_mdesc_size, &mdesc_ver);
     info_size += 8 * efi_mdesc_size;
@@ -1328,7 +1335,6 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
     if ( !efi_memmap )
         blexit(L"Unable to allocate memory for EFI memory map");
 
-    PrintStr(L"[Checkpoint 2b] Starting exit boot loop\r\n");
     for ( retry = false; ; retry = true )
     {
         efi_memmap_size = info_size;
@@ -1343,7 +1349,6 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
         efi_arch_process_memory_map(SystemTable, efi_memmap, efi_memmap_size,
                                     efi_mdesc_size, mdesc_ver);
 
-        PrintStr(L"[Checkpoint 2d] Calling ExitBootServices\r\n");
         efi_arch_pre_exit_boot();
 
         status = SystemTable->BootServices->ExitBootServices(ImageHandle,
@@ -1351,16 +1356,6 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
         efi_bs = NULL;
         if ( status != EFI_INVALID_PARAMETER || retry )
             break;
-        PrintStr(L"[Checkpoint 2e] Retrying...\r\n");
-    }
-
-    if ( EFI_ERROR(status) )
-    {
-        PrintErr(L"Cannot exit boot services: Invalid parameter\r\n");
-        PrintStr(L"[DIAGNOSTIC] Ignoring ExitBootServices failure\r\n");
-        PrintStr(L"[DIAGNOSTIC] Skipping remaining EFI cleanup\r\n");
-        PrintStr(L"[Checkpoint 3] Calling efi_arch_post_exit_boot\r\n");
-        efi_arch_post_exit_boot(); /* Doesn't return */
     }
 
 #ifdef CONFIG_EFI_SET_VIRTUAL_ADDRESS_MAP
@@ -1493,7 +1488,6 @@ void EFIAPI __init noreturn efi_start(EFI_HANDLE ImageHandle,
     PrintStr(L"Xen " XEN_VERSION_STRING XEN_EXTRAVERSION
              " (c/s " XEN_CHANGESET ") EFI loader\r\n");
 
-    PrintStr(L"[Checkpoint 1] Starting EFI boot\r\n");
     efi_arch_relocate_image(0);
 
     if ( use_cfg_file )
@@ -1682,10 +1676,14 @@ void EFIAPI __init noreturn efi_start(EFI_HANDLE ImageHandle,
 
     efi_relocate_esrt(SystemTable);
 
-    PrintStr(L"[Checkpoint 2] Calling efi_exit_boot\r\n");
     efi_exit_boot(ImageHandle, SystemTable);
-    PrintStr(L"[Checkpoint 3] Calling efi_arch_post_exit_boot\r\n");
-    efi_arch_post_exit_boot(); /* Doesn't return. */
+
+    /*
+     * efi_exit_boot() now calls efi_arch_post_exit_boot() internally,
+     * which never returns (it either boots Xen or halts with diagnostic).
+     * Mark this as unreachable for the compiler.
+     */
+    unreachable();
 }
 
 #ifndef CONFIG_ARM /* TODO - runtime service support */
