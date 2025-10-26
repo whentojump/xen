@@ -1320,8 +1320,6 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
     unsigned int i;
 #endif
 
-    PrintStr(L"[DEBUG] Entered efi_exit_boot\r\n");
-
     /*
      * Check privilege level IMMEDIATELY, before any EFI operations
      * that might require EL2 (e.g., GetMemoryMap, memory allocations).
@@ -1345,7 +1343,6 @@ static void __init efi_exit_boot(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
         if ( EFI_ERROR(status) )
             PrintErrMesg(L"Cannot obtain memory map", status);
 
-        PrintStr(L"[Checkpoint 2c] Processing memory map\r\n");
         efi_arch_process_memory_map(SystemTable, efi_memmap, efi_memmap_size,
                                     efi_mdesc_size, mdesc_ver);
 

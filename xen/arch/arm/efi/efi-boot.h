@@ -423,12 +423,8 @@ static void __init noreturn efi_arch_post_exit_boot(void)
     uint64_t current_el;
     uint64_t el;
 
-    PrintStr(L"[DEBUG] Entered efi_arch_post_exit_boot\r\n");
-
     asm volatile("mrs %0, CurrentEL" : "=r" (current_el));
     el = (current_el >> 2) & 3;
-
-    PrintStr(L"[DEBUG] CurrentEL read successfully\r\n");
 
     PrintStr(L"\r\n========================================\r\n");
     PrintStr(L"XEN EXCEPTION LEVEL CHECK\r\n");
