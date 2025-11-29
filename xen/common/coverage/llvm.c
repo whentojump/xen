@@ -34,6 +34,19 @@ uint64_t __llvm_profile_get_magic(void);
 uint64_t __llvm_profile_get_size_for_buffer(void);
 int __llvm_profile_write_buffer(char *Buffer);
 
+// typedef struct ValueProfNode {
+//        // InstrProfValueData VData;
+//        uint64_t Value;
+//        uint64_t Count;
+//        struct ValueProfNode *Next;
+// } ValueProfNode;
+
+typedef struct VTableProfData {
+       uint64_t dummy1;
+       int *dummy2;
+       uint32_t dummy3;
+} VTableProfData;
+
 // const __llvm_profile_data *__llvm_profile_begin_data(void);
 // const __llvm_profile_data *__llvm_profile_end_data(void);
 const char *__llvm_profile_begin_names(void);
@@ -46,7 +59,7 @@ char *__llvm_profile_begin_bitmap(void);
 char *__llvm_profile_end_bitmap(void);
 // ValueProfNode *__llvm_profile_begin_vnodes(void);
 // ValueProfNode *__llvm_profile_end_vnodes(void);
-// const VTableProfData *__llvm_profile_begin_vtables(void);
+const VTableProfData *__llvm_profile_begin_vtables(void);
 // const VTableProfData *__llvm_profile_end_vtables(void);
 uint32_t *__llvm_profile_begin_orderfile(void);
 
@@ -176,7 +189,7 @@ static uint32_t cf_check get_size(void)
     const char *BitmapEnd = __llvm_profile_end_bitmap();
     const char *NamesBegin = __llvm_profile_begin_names();
     const char *NamesEnd = __llvm_profile_end_names();
-    // const VTableProfData *VTableBegin = __llvm_profile_begin_vtables();
+    const VTableProfData *VTableBegin = __llvm_profile_begin_vtables();
     // const VTableProfData *VTableEnd = __llvm_profile_end_vtables();
     // const char *VNamesBegin = __llvm_profile_begin_vtabnames();
     // const char *VNamesEnd = __llvm_profile_end_vtabnames();
@@ -185,6 +198,7 @@ static uint32_t cf_check get_size(void)
     printk("CountersBegin: %p, CountersEnd: %p\n", CountersBegin, CountersEnd);
     printk("BitmapBegin: %p, BitmapEnd: %p\n", BitmapBegin, BitmapEnd);
     printk("NamesBegin: %p, NamesEnd: %p\n", NamesBegin, NamesEnd);
+    printk("VTableBegin: %p\n", VTableBegin);
 
 // }}}
 
