@@ -93,6 +93,15 @@ SECTIONS
 
        *(.text.page_aligned)
        *(.text)
+
+#if defined(CONFIG_COVERAGE) && defined(CONFIG_CC_IS_CLANG)
+       *(.text.__llvm_profile_*)
+       *(.text.lprof*)
+       *(.text.__llvm_write_binary_ids)
+       *(.text.writeOneValueProfData)
+       *(.text.initBufferWriter)
+#endif
+
 #ifdef CONFIG_CC_SPLIT_SECTIONS
        *(.text.*)
 #endif
@@ -409,6 +418,7 @@ ASSERT(IS_ALIGNED(__bss_start,      8), "__bss_start misaligned")
 ASSERT(IS_ALIGNED(__bss_end,        8), "__bss_end misaligned")
 
 #ifndef EFI
+#if !defined(CONFIG_CC_IS_CLANG) || !defined(CONFIG_COVERAGE)
 ASSERT(!SIZEOF(.got),      ".got non-empty")
 /*
  * At least GNU ld 2.30 and earlier fail to discard the generic part of
@@ -421,6 +431,7 @@ ASSERT(!SIZEOF(.igot.plt), ".igot.plt non-empty")
 ASSERT(!SIZEOF(.iplt),     ".iplt non-empty")
 ASSERT(!SIZEOF(.plt),      ".plt non-empty")
 ASSERT(!SIZEOF(.rela),     "leftover relocations")
+#endif
 #endif
 
 /*

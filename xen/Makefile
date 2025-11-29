@@ -447,6 +447,11 @@ CFLAGS += -flto
 LDFLAGS-$(CONFIG_CC_IS_CLANG) += -plugin LLVMgold.so
 endif
 
+ifneq ($(CONFIG_CC_IS_CLANG)$(CONFIG_COVERAGE),)
+CLANG_RESOURCE_DIR := $(shell $(CC) -print-resource-dir)
+LDFLAGS += $(CLANG_RESOURCE_DIR)/lib/x86_64-unknown-linux-gnu/libclang_rt.profile.a
+endif
+
 ifdef building_out_of_srctree
     CFLAGS += -I$(objtree)/include
     CFLAGS += -I$(objtree)/arch/$(SRCARCH)/include

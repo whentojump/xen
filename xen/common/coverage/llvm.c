@@ -30,6 +30,9 @@
 
 #include "coverage.h"
 
+uint64_t __llvm_profile_get_size_for_buffer(void);
+int __llvm_profile_write_buffer(char *Buffer);
+
 #ifndef __clang__
 #error "LLVM coverage selected without clang compiler"
 #endif
@@ -141,8 +144,10 @@ static void cf_check reset_counters(void)
 
 static uint32_t cf_check get_size(void)
 {
+    uint64_t size_bare = __llvm_profile_get_size_for_buffer();
     uint32_t size = ROUNDUP(sizeof(struct llvm_profile_header) + END_DATA - START_DATA +
                    END_COUNTERS - START_COUNTERS + END_NAMES - START_NAMES, 8);
+    printk("size_bare: %lu, size: %u\n", size_bare, size);
     if ( IS_ENABLED(CONFIG_CONDITION_COVERAGE) )
         size += ROUNDUP(END_BITMAP - START_BITMAP, 8);
     return size;
