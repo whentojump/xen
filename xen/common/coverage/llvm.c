@@ -32,6 +32,7 @@
 
 uint64_t __llvm_profile_get_size_for_buffer(void);
 int __llvm_profile_write_buffer(char *Buffer);
+void __llvm_profile_reset_counters(void);
 
 #ifndef __clang__
 #error "LLVM coverage selected without clang compiler"
@@ -137,9 +138,13 @@ extern const char __stop___llvm_prf_bits[];
 
 static void cf_check reset_counters(void)
 {
+#if 0
     memset(START_COUNTERS, 0, END_COUNTERS - START_COUNTERS);
     if ( IS_ENABLED(CONFIG_CONDITION_COVERAGE) )
         memset(START_BITMAP, 0, END_BITMAP - START_BITMAP);
+#else
+    __llvm_profile_reset_counters();
+#endif
 }
 
 static uint32_t cf_check get_size(void)
