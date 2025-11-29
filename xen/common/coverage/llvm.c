@@ -34,6 +34,23 @@ uint64_t __llvm_profile_get_magic(void);
 uint64_t __llvm_profile_get_size_for_buffer(void);
 int __llvm_profile_write_buffer(char *Buffer);
 
+// const __llvm_profile_data *__llvm_profile_begin_data(void);
+// const __llvm_profile_data *__llvm_profile_end_data(void);
+const char *__llvm_profile_begin_names(void);
+const char *__llvm_profile_end_names(void);
+const char *__llvm_profile_begin_vtabnames(void);
+const char *__llvm_profile_end_vtabnames(void);
+char *__llvm_profile_begin_counters(void);
+char *__llvm_profile_end_counters(void);
+char *__llvm_profile_begin_bitmap(void);
+char *__llvm_profile_end_bitmap(void);
+// ValueProfNode *__llvm_profile_begin_vnodes(void);
+// ValueProfNode *__llvm_profile_end_vnodes(void);
+// const VTableProfData *__llvm_profile_begin_vtables(void);
+// const VTableProfData *__llvm_profile_end_vtables(void);
+uint32_t *__llvm_profile_begin_orderfile(void);
+
+
 #ifndef __clang__
 #error "LLVM coverage selected without clang compiler"
 #endif
@@ -148,6 +165,29 @@ static uint32_t cf_check get_size(void)
     uint64_t size_bare = __llvm_profile_get_magic(); //  __llvm_profile_get_size_for_buffer();
     uint32_t size = ROUNDUP(sizeof(struct llvm_profile_header) + END_DATA - START_DATA +
                    END_COUNTERS - START_COUNTERS + END_NAMES - START_NAMES, 8);
+
+// Playground {{{
+
+    // const __llvm_profile_data *DataBegin = __llvm_profile_begin_data();
+    // const __llvm_profile_data *DataEnd = __llvm_profile_end_data();
+    const char *CountersBegin = __llvm_profile_begin_counters();
+    const char *CountersEnd = __llvm_profile_end_counters();
+    const char *BitmapBegin = __llvm_profile_begin_bitmap();
+    const char *BitmapEnd = __llvm_profile_end_bitmap();
+    const char *NamesBegin = __llvm_profile_begin_names();
+    const char *NamesEnd = __llvm_profile_end_names();
+    // const VTableProfData *VTableBegin = __llvm_profile_begin_vtables();
+    // const VTableProfData *VTableEnd = __llvm_profile_end_vtables();
+    // const char *VNamesBegin = __llvm_profile_begin_vtabnames();
+    // const char *VNamesEnd = __llvm_profile_end_vtabnames();
+
+
+    printk("CountersBegin: %p, CountersEnd: %p\n", CountersBegin, CountersEnd);
+    printk("BitmapBegin: %p, BitmapEnd: %p\n", BitmapBegin, BitmapEnd);
+    printk("NamesBegin: %p, NamesEnd: %p\n", NamesBegin, NamesEnd);
+
+// }}}
+
     printk("size_bare: %lu, size: %u\n", size_bare, size);
     if ( IS_ENABLED(CONFIG_CONDITION_COVERAGE) )
         size += ROUNDUP(END_BITMAP - START_BITMAP, 8);
