@@ -89,7 +89,10 @@
     DECL_SECTION(__llvm_prf_bits) { *(__llvm_prf_bits) }
 
 #define LLVM_COV_RO_DATA                                   \
-    DECL_SECTION(__llvm_prf_names) { *(__llvm_prf_names) }
+    DECL_SECTION(__llvm_prf_names) { *(__llvm_prf_names) } \
+    DECL_SECTION(__llvm_prf_vnds) { *(__llvm_prf_vnds) } \
+    DECL_SECTION(__llvm_prf_vtab) { *(__llvm_prf_vtab) } \
+    DECL_SECTION(__llvm_prf_vns) { *(__llvm_prf_vns) }
 
 #define LLVM_COV_DEBUG                                     \
     DECL_DEBUG(__llvm_covfun, 8)                           \
