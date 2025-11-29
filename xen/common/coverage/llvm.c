@@ -163,6 +163,8 @@ static uint32_t cf_check get_size(void)
 static int cf_check dump(
     XEN_GUEST_HANDLE_PARAM(char) buffer, uint32_t *buf_size)
 {
+#if 0
+
     struct llvm_profile_header header = {
         .magic = LLVM_PROFILE_MAGIC,
         .version = LLVM_PROFILE_VERSION,
@@ -202,6 +204,23 @@ static int cf_check dump(
     clear_guest_offset(buffer, off, *buf_size - off);
 
     return 0;
+#else
+    char *my_buffer = xmalloc_bytes(*buf_size);
+    if ( !my_buffer )
+        return -ENOMEM;
+    if ( __llvm_profile_write_buffer(my_buffer) == -1 )
+    {
+        xfree(my_buffer);
+        return -ENOMEM;
+    }
+    if ( copy_to_guest_offset(buffer, 0, my_buffer, *buf_size) )
+    {
+        xfree(my_buffer);
+        return -EFAULT;
+    }
+    xfree(my_buffer);
+    return 0;
+#endif
 }
 
 const struct cov_sysctl_ops cov_ops = {
